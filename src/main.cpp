@@ -96,6 +96,7 @@ void update()
     ac.on();
     if (isCool)
     {
+      ac.setPower(true);
       Serial.println("Send IR : temp = " + String(setTemp) + " swing = " + String(isSwing) + " Fan Speed : " + String(fanSpeed) + " IsLastOn : " + isLastOn);
       isLastOn = true;
       lastTemp = setTemp;
@@ -108,7 +109,7 @@ void update()
       switch (fanSpeed)
       {
       case (0):
-        ac.setFan(kCoolixFanAuto);
+        ac.setFan(kCoolixFanAuto0);
         break;
       case (1):
         ac.setFan(kCoolixFanMin);
@@ -126,6 +127,7 @@ void update()
     }
     else
     {
+      ac.setPower(true);
       ac.setMode(kCoolixFan);
       lastIsCool = false;
     }
@@ -415,40 +417,9 @@ void callback(char *topic, byte *payload, unsigned int length)
   updateServerValue();
 }
 
-void autoAdjustScreenBrightness()
-{
-  unsigned long currentMillis = millis();
-
-  if (currentMillis - previousMillis >= screenBrightnessUpdateInt)
-  {
-
-    // Serial.println(analogRead(ldrPin));
-    // save the last time you blinked the LED
-    previousMillis = currentMillis;
-
-    if (analogRead(ldrPin) < 85 && currentContrast != 0)
-    {
-      Serial.println("Clear");
-    }
-    else if (analogRead(ldrPin) < 400 && currentContrast != 1 || !isOn)
-    {
-      currentContrast = 1;
-    }
-    else if (analogRead(ldrPin) >= 400)
-    {
-      // u8g2.setContrast(1);
-
-      currentContrast = 255;
-    }
-  }
-}
-
 void setup()
 {
   Serial.begin(115200);
-
-  //Setup display
-  Serial.println("Setting up display");
 
   // Setup buttons
   Serial.println("Setting up buttons");
@@ -479,6 +450,12 @@ void setup()
   Serial.println("Setting up IR Lib");
   ac.begin();
   irsend.begin();
+
+  ac.setPower(true);
+  ac.setFan(kCoolixFanAuto0);
+  ac.setMode(kCoolixCool);
+  ac.setTemp(23);
+  ac.send();
 
   //Start the NTP UDP client
   Serial.println("Setting up NTP Client");
@@ -526,6 +503,5 @@ void loop()
   }
   client.loop();
   ArduinoOTA.handle();
-  autoAdjustScreenBrightness();
   handleCurrentAction();
 }

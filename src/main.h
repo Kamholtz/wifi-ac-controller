@@ -21,9 +21,9 @@
 */
 
 // Constants
-const char *autoconf_ssid = "IPF";		 //AP name for WiFi setup AP which your ESP will open when not able to connect to other WiFi
-const char *autoconf_pwd = "fuckna1234"; //AP password so noone else can connect to the ESP in case your router fails
-const char *mqtt_server = "192.168.1.5"; //MQTT Server IP, your home MQTT server eg Mosquitto on RPi, or some public MQTT
+const char *autoconf_ssid = "ESP8266 Smart AC"; //AP name for WiFi setup AP which your ESP will open when not able to connect to other WiFi
+const char *autoconf_pwd = "fuckno1234";		//AP password so noone else can connect to the ESP in case your router fails
+const char *mqtt_server = "192.168.1.51";		//MQTT Server IP, your home MQTT server eg Mosquitto on RPi, or some public MQTT
 const int mqtt_port = 1883;				 //MQTT Server PORT, default is 1883 but can be anything.
 const int btnPower = D5;
 const int btnUp = D6;
