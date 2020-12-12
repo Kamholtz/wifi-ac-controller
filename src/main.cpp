@@ -109,6 +109,7 @@ void update()
       switch (fanSpeed)
       {
       case (0):
+        Serial.println("Setting to coolix fan auto");
         ac.setFan(kCoolixFanAuto0);
         break;
       case (1):
@@ -122,7 +123,7 @@ void update()
         break;
       }
 
-      ac.setSwing();
+      // ac.setSwing();
       ac.setTemp(setTemp);
     }
     else
@@ -141,11 +142,10 @@ void update()
 
     //set and send command
     ac.off();
-    irsend.sendRaw(ac_off, 349, 38); //I need to send raw for off because Library didn't work.
+    ac.send();
   }
 
-  //Turn on Display
-  Serial.println("UpdateDisplay");
+  Serial.println("Sent command to AC");
   previousMillis = millis();
   currentContrast = 255;
 }
@@ -450,12 +450,6 @@ void setup()
   Serial.println("Setting up IR Lib");
   ac.begin();
   irsend.begin();
-
-  ac.setPower(true);
-  ac.setFan(kCoolixFanAuto0);
-  ac.setMode(kCoolixCool);
-  ac.setTemp(23);
-  ac.send();
 
   //Start the NTP UDP client
   Serial.println("Setting up NTP Client");
