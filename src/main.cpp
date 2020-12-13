@@ -1,4 +1,4 @@
-
+#include <FS.h>
 #include <IRremoteESP8266.h>
 #include <IRsend.h>
 
@@ -21,7 +21,11 @@
 
 #include "main.h"
 
+char device_name_buf[40] = "Living room AC";
+char mqtt_server_buf[40] = "192.168.1.51";
+char mqtt_port_buf[6] = "1883";
 decode_type_t protocols[] = {COOLIX, MITSUBISHI_AC};
+bool shouldSaveConfig = false;
 
 #ifdef U8X8_HAVE_HW_SPI
 #include <SPI.h>
@@ -50,6 +54,13 @@ void increment();
 void decrement();
 void update();
 void updateServerValue();
+
+//callback notifying us of the need to save config
+void saveConfigCallback()
+{
+  Serial.println("Should save config");
+  shouldSaveConfig = true;
+}
 
 // void btnSwingInt()
 // {
@@ -457,6 +468,50 @@ void setAcNextDefaults()
   ac.next.power = false;                         // Initially start with the unit off.
 }
 
+void getConfig()
+{
+  if (SPIFFS.begin())
+  {
+    Serial.println("mounted file system");
+    if (SPIFFS.exists("/config.json"))
+    {
+      //file exists, reading and loading
+      Serial.println("reading config file");
+      File configFile = SPIFFS.open("/config.json", "r");
+      if (configFile)
+      {
+        Serial.println("opened config file");
+        size_t size = configFile.size();
+        // Allocate a buffer to store contents of the file.
+        std::unique_ptr<char[]> buf(new char[size]);
+
+        configFile.readBytes(buf.get(), size);
+
+        DynamicJsonBuffer jsonBuffer;
+        JsonObject &json = jsonBuffer.parseObject(buf.get());
+        json.printTo(Serial);
+
+        if (json.success())
+        {
+          Serial.println("\nparsed json");
+          strcpy(device_name_buf, json["device_name"]);
+          strcpy(mqtt_port_buf, json["mqtt_port"]);
+          strcpy(mqtt_server_buf, json["mqtt_server"]);
+        }
+        else
+        {
+          Serial.println("failed to load json config");
+        }
+        configFile.close();
+      }
+    }
+  }
+  else
+  {
+    Serial.println("failed to mount FS");
+  }
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -472,9 +527,58 @@ void setup()
   // Setup networking
   Serial.println("Setting up network");
   wifiManager.setConfigPortalTimeout(120);
-  wifiManager.autoConnect(autoconf_ssid, autoconf_pwd);
+  wifiManager.setSaveConfigCallback(saveConfigCallback);
+
+  // Custom parameters
+  WiFiManagerParameter custom_device_name("Device name", "Device name", device_name_buf, 40);
+  WiFiManagerParameter custom_mqtt_server("MQTT Server", "MQTT Server", mqtt_server_buf, 40);
+  WiFiManagerParameter custom_mqtt_port("MQTT Port", "Port number", mqtt_port_buf, 6);
+
+  wifiManager.addParameter(&custom_device_name);
+  wifiManager.addParameter(&custom_mqtt_server);
+  wifiManager.addParameter(&custom_mqtt_port);
+
+  // wifiManager.autoConnect(autoconf_ssid, autoconf_pwd);
+  wifiManager.startConfigPortal(autoconf_ssid, autoconf_pwd);
+
+  //read updated parameters
+  strcpy(device_name_buf, custom_device_name.getValue());
+  strcpy(mqtt_server_buf, custom_mqtt_server.getValue());
+  strcpy(mqtt_port_buf, custom_mqtt_port.getValue());
+  Serial.println("The values in the file are: ");
+  Serial.println("\tdevice_name : " + String(device_name_buf));
+  Serial.println("\tmqtt_server : " + String(mqtt_server_buf));
+  Serial.println("\tmqtt_port : " + String(mqtt_port_buf));
+
+  // Update the port int
+  mqtt_port = atoi(mqtt_port_buf);
+
+  //save the custom parameters to FS
+  if (shouldSaveConfig)
+  {
+    Serial.println("saving config");
+
+    DynamicJsonBuffer jsonBuffer;
+    JsonObject &json = jsonBuffer.createObject();
+
+    json["mqtt_server"] = mqtt_server_buf;
+    json["mqtt_port"] = mqtt_port_buf;
+    json["device_name"] = device_name_buf;
+
+    File configFile = SPIFFS.open("/config.json", "w");
+    if (!configFile)
+    {
+      Serial.println("failed to open config file for writing");
+    }
+
+    json.printTo(Serial);
+    json.printTo(configFile);
+
+    configFile.close();
+  }
+
   setup_ota();
-  client.setServer(mqtt_server, mqtt_port);
+  client.setServer(mqtt_server_buf, mqtt_port);
   client.setCallback(callback);
 
   //Attach interrupt for manual button controls
