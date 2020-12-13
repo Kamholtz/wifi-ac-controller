@@ -1,5 +1,22 @@
 {
 	"files.associations": {
 		"random": "cpp"
-	}
+	},
+	"workbench.colorCustomizations": {
+		"activityBar.activeBackground": "#b88fbf",
+		"activityBar.activeBorder": "#e8e5d6",
+		"activityBar.background": "#b88fbf",
+		"activityBar.foreground": "#15202b",
+		"activityBar.inactiveForeground": "#15202b99",
+		"activityBarBadge.background": "#e8e5d6",
+		"activityBarBadge.foreground": "#15202b",
+		"statusBar.background": "#a36ead",
+		"statusBar.foreground": "#15202b",
+		"statusBarItem.hoverBackground": "#8a5494",
+		"titleBar.activeBackground": "#a36ead",
+		"titleBar.activeForeground": "#15202b",
+		"titleBar.inactiveBackground": "#a36ead99",
+		"titleBar.inactiveForeground": "#15202b99"
+	},
+	"peacock.color": "#a36ead"
 }

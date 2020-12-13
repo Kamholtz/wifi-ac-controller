@@ -48,19 +48,19 @@ void decrement();
 void update();
 void updateServerValue();
 
-void btnSwingInt()
-{
-  isSwing = !isSwing;
-  update();
-  updateServerValue();
-}
+// void btnSwingInt()
+// {
+//   isSwing = !isSwing;
+//   update();
+//   updateServerValue();
+// }
 
-void btnSpeedInt()
-{
-  fanSpeed = ++fanSpeed % 4;
-  update();
-  updateServerValue();
-}
+// void btnSpeedInt()
+// {
+//   fanSpeed = ++fanSpeed % 4;
+//   update();
+//   updateServerValue();
+// }
 
 // function for up-down interrupt
 void ICACHE_RAM_ATTR btnUpInt()
@@ -73,12 +73,12 @@ void ICACHE_RAM_ATTR btnDnInt()
   currentAction = ACTION_DOWN;
 }
 
-void changeACmode()
-{
-  isCool = !isCool;
-  update();
-  updateServerValue();
-}
+// void changeACmode()
+// {
+//   isCool = !isCool;
+//   update();
+//   updateServerValue();
+// }
 
 void update()
 {
