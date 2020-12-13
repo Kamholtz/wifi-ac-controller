@@ -12,13 +12,16 @@
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
 #include <math.h>
-#include <ir_Coolix.h>
 #include <NTPClient.h>
+#include <IRac.h>
+#include <IRUtils.h>
 
 #define MQTT_MAX_PACKET_SIZE 512
 #define MQTT_SOCKET_TIMEOUT 1
 
 #include "main.h"
+
+decode_type_t protocols[] = {COOLIX, MITSUBISHI};
 
 #ifdef U8X8_HAVE_HW_SPI
 #include <SPI.h>
@@ -35,7 +38,7 @@ const int OLED_cs = D0;
 WiFiClient espClient;
 WiFiManager wifiManager;
 PubSubClient client(espClient);
-IRCoolixAC ac(IR_pin);
+IRac ac(IR_pin);
 IRsend irsend(IR_pin);
 
 // Set up the NTP UDP client
@@ -79,6 +82,16 @@ void ICACHE_RAM_ATTR btnDnInt()
 //   update();
 //   updateServerValue();
 // }
+//
+void sendAllProtocols(IRac ac)
+{
+  uint8_t numProtocols = sizeof(protocols) / sizeof(protocols[0]);
+  for (uint8_t i = 0; i < numProtocols; i++)
+  {
+    ac.next.protocol = protocols[i];
+    ac.sendAc();
+  }
+}
 
 void update()
 {
@@ -93,10 +106,9 @@ void update()
 
   if (isOn)
   {
-    ac.on();
+    ac.next.power = true;
     if (isCool)
     {
-      ac.setPower(true);
       Serial.println("Send IR : temp = " + String(setTemp) + " swing = " + String(isSwing) + " Fan Speed : " + String(fanSpeed) + " IsLastOn : " + isLastOn);
       isLastOn = true;
       lastTemp = setTemp;
@@ -105,35 +117,35 @@ void update()
       lastIsCool = true;
 
       //Set and send commands
-      ac.setMode(kCoolixCool);
+      ac.next.mode = stdAc::opmode_t::kCool;
       switch (fanSpeed)
       {
       case (0):
         Serial.println("Setting to coolix fan auto");
-        ac.setFan(kCoolixFanAuto0);
+        ac.next.fanspeed = stdAc::fanspeed_t::kAuto;
         break;
       case (1):
-        ac.setFan(kCoolixFanMin);
+        ac.next.fanspeed = stdAc::fanspeed_t::kMin;
         break;
       case (2):
-        ac.setFan(kCoolixFanMed);
+        ac.next.fanspeed = stdAc::fanspeed_t::kMedium;
         break;
       case (3):
-        ac.setFan(kCoolixFanMax);
+        ac.next.fanspeed = stdAc::fanspeed_t::kMax;
         break;
       }
 
       // ac.setSwing();
-      ac.setTemp(setTemp);
+      ac.next.degrees = setTemp;
     }
     else
     {
-      ac.setPower(true);
-      ac.setMode(kCoolixFan);
+      ac.next.power = true;
+      ac.next.mode = stdAc::opmode_t::kFan;
       lastIsCool = false;
     }
 
-    ac.send();
+    ac.sendAc();
   }
   else if (isLastOn)
   {
@@ -141,8 +153,8 @@ void update()
     isLastOn = false;
 
     //set and send command
-    ac.off();
-    ac.send();
+    ac.next.power = false;
+    ac.sendAc();
   }
 
   Serial.println("Sent command to AC");
@@ -417,6 +429,33 @@ void callback(char *topic, byte *payload, unsigned int length)
   updateServerValue();
 }
 
+void setAcNextDefaults()
+{
+  Serial.println("Setting AC next defaults");
+
+  // Set up what we want to send.
+  // See state_t, opmode_t, fanspeed_t, swingv_t, & swingh_t in IRsend.h for
+  // all the various options.
+  ac.next.protocol = decode_type_t::COOLIX;      // Set a protocol to use.
+  ac.next.model = 1;                             // Some A/Cs have different models. Try just the first.
+  ac.next.mode = stdAc::opmode_t::kCool;         // Run in cool mode initially.
+  ac.next.celsius = true;                        // Use Celsius for temp units. False = Fahrenheit
+  ac.next.degrees = 25;                          // 25 degrees.
+  ac.next.fanspeed = stdAc::fanspeed_t::kMedium; // Start the fan at medium.
+  ac.next.swingv = stdAc::swingv_t::kOff;        // Don't swing the fan up or down.
+  ac.next.swingh = stdAc::swingh_t::kOff;        // Don't swing the fan left or right.
+  ac.next.light = false;                         // Turn off any LED/Lights/Display that we can.
+  ac.next.beep = false;                          // Turn off any beep from the A/C if we can.
+  ac.next.econo = false;                         // Turn off any economy modes if we can.
+  ac.next.filter = false;                        // Turn off any Ion/Mold/Health filters if we can.
+  ac.next.turbo = false;                         // Don't use any turbo/powerful/etc modes.
+  ac.next.quiet = false;                         // Don't use any quiet/silent/etc modes.
+  ac.next.sleep = -1;                            // Don't set any sleep time or modes.
+  ac.next.clean = false;                         // Turn off any Cleaning options if we can.
+  ac.next.clock = -1;                            // Don't set any current time if we can avoid it.
+  ac.next.power = false;                         // Initially start with the unit off.
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -448,7 +487,8 @@ void setup()
 
   //Setup IR Lib
   Serial.println("Setting up IR Lib");
-  ac.begin();
+  ac.next.protocol = protocols[0];
+  setAcNextDefaults();
   irsend.begin();
 
   //Start the NTP UDP client
