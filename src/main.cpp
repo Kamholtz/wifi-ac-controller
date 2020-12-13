@@ -21,7 +21,7 @@
 
 #include "main.h"
 
-decode_type_t protocols[] = {COOLIX, MITSUBISHI};
+decode_type_t protocols[] = {COOLIX, MITSUBISHI_AC};
 
 #ifdef U8X8_HAVE_HW_SPI
 #include <SPI.h>
@@ -89,6 +89,7 @@ void sendAllProtocols(IRac ac)
   for (uint8_t i = 0; i < numProtocols; i++)
   {
     ac.next.protocol = protocols[i];
+    Serial.println("Sending to: " + typeToString(protocols[i]));
     ac.sendAc();
   }
 }
@@ -145,7 +146,7 @@ void update()
       lastIsCool = false;
     }
 
-    ac.sendAc();
+    sendAllProtocols(ac);
   }
   else if (isLastOn)
   {
@@ -154,7 +155,7 @@ void update()
 
     //set and send command
     ac.next.power = false;
-    ac.sendAc();
+    sendAllProtocols(ac);
   }
 
   Serial.println("Sent command to AC");
