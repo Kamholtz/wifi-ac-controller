@@ -119,9 +119,11 @@ void update()
 
   if (isOn)
   {
+    Serial.println("Turning AC on");
     ac.next.power = true;
     if (isCool)
     {
+      Serial.println("Setting AC to cool");
       Serial.println("Send IR : temp = " + String(setTemp) + " swing = " + String(isSwing) + " Fan Speed : " + String(fanSpeed) + " IsLastOn : " + isLastOn);
       isLastOn = true;
       lastTemp = setTemp;
@@ -148,11 +150,12 @@ void update()
         break;
       }
 
-      // ac.setSwing();
+      ac.next.swingv = isSwing ? stdAc::swingv_t::kMiddle : stdAc::swingv_t::kAuto;
       ac.next.degrees = setTemp;
     }
     else
     {
+      Serial.println("Setting AC to fan");
       ac.next.power = true;
       ac.next.mode = stdAc::opmode_t::kFan;
       lastIsCool = false;
@@ -162,10 +165,9 @@ void update()
   }
   else if (isLastOn)
   {
-    Serial.println("Send off");
+    Serial.println("Turning AC off");
     isLastOn = false;
 
-    //set and send command
     ac.next.power = false;
     sendAllProtocols(ac);
   }
@@ -498,7 +500,7 @@ void setAcNextDefaults()
   ac.next.model = 1;                             // Some A/Cs have different models. Try just the first.
   ac.next.mode = stdAc::opmode_t::kCool;         // Run in cool mode initially.
   ac.next.celsius = true;                        // Use Celsius for temp units. False = Fahrenheit
-  ac.next.degrees = 25;                          // 25 degrees.
+  ac.next.degrees = 24;                          // 25 degrees.
   ac.next.fanspeed = stdAc::fanspeed_t::kMedium; // Start the fan at medium.
   ac.next.swingv = stdAc::swingv_t::kOff;        // Don't swing the fan up or down.
   ac.next.swingh = stdAc::swingh_t::kOff;        // Don't swing the fan left or right.
