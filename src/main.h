@@ -64,7 +64,7 @@ String service_name_secondary = "smart_ac_basic";
 
 // Global variables
 unsigned int isOn = false;
-unsigned int setTemp = 23;
+unsigned int setTemp = 22;
 unsigned int isCool = true; //false = fan mode
 unsigned int fanSpeed = 0;	//0: Auto, 1:Min, 2:Medium, 3:High
 unsigned int maxTemp = 28;
