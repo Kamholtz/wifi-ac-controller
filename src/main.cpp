@@ -22,6 +22,7 @@
 #include "main.h"
 
 char device_name_buf[40] = "Living room AC";
+char service_name_buf[40] = "living_room_ac";
 char mqtt_server_buf[40] = "192.168.1.51";
 char mqtt_port_buf[6] = "1883";
 decode_type_t protocols[] = {COOLIX, MITSUBISHI_AC};
@@ -281,6 +282,12 @@ void reconnect()
   if (client.connect(clientId.c_str()))
   {
     // Once connected, resubscribe.
+    // char data[400];
+
+    // String message = " { \"name\": \"" + device_name + "\", \"service_name\": \"smart_ac\", \"service\": \"HeaterCooler\", \"manufacturer\": \"ESP8266\", \"firmwarerevision\": \"1.0.0\", \"SwingMode\": 1, \"RotationSpeed\": {\"maxValue\": 3, \"minValue\": 0, \"minStep\": 3}, \"CoolingThresholdTemperature\": {\"maxValue\": 28, \"minValue\": 18, \"minStep\": 1} } ";
+    // message.toCharArray(data, (message.length() + 1));
+    // client.publish(mqtt_device_value_to_add_topic, data);
+
     client.subscribe(mqtt_device_value_from_set_topic);
   }
 }
@@ -468,8 +475,11 @@ void setAcNextDefaults()
   ac.next.power = false;                         // Initially start with the unit off.
 }
 
-void getConfig()
+void getConfigFromFS()
 {
+  // SPIFFS.format();
+  Serial.println("mounting FS...");
+
   if (SPIFFS.begin())
   {
     Serial.println("mounted file system");
@@ -495,6 +505,7 @@ void getConfig()
         {
           Serial.println("\nparsed json");
           strcpy(device_name_buf, json["device_name"]);
+          strcpy(service_name_buf, json["service_name"]);
           strcpy(mqtt_port_buf, json["mqtt_port"]);
           strcpy(mqtt_server_buf, json["mqtt_server"]);
         }
@@ -529,29 +540,38 @@ void setup()
   wifiManager.setConfigPortalTimeout(120);
   wifiManager.setSaveConfigCallback(saveConfigCallback);
 
+  getConfigFromFS();
+
   // Custom parameters
   WiFiManagerParameter custom_device_name("Device name", "Device name", device_name_buf, 40);
+  WiFiManagerParameter custom_service_name("Service name", "Service name", service_name_buf, 40);
   WiFiManagerParameter custom_mqtt_server("MQTT Server", "MQTT Server", mqtt_server_buf, 40);
   WiFiManagerParameter custom_mqtt_port("MQTT Port", "Port number", mqtt_port_buf, 6);
 
   wifiManager.addParameter(&custom_device_name);
+  wifiManager.addParameter(&custom_service_name);
   wifiManager.addParameter(&custom_mqtt_server);
   wifiManager.addParameter(&custom_mqtt_port);
 
-  // wifiManager.autoConnect(autoconf_ssid, autoconf_pwd);
-  wifiManager.startConfigPortal(autoconf_ssid, autoconf_pwd);
+  wifiManager.autoConnect(autoconf_ssid, autoconf_pwd);
+  // wifiManager.startConfigPortal(autoconf_ssid, autoconf_pwd);
 
   //read updated parameters
   strcpy(device_name_buf, custom_device_name.getValue());
+  strcpy(service_name_buf, custom_service_name.getValue());
   strcpy(mqtt_server_buf, custom_mqtt_server.getValue());
   strcpy(mqtt_port_buf, custom_mqtt_port.getValue());
+
   Serial.println("The values in the file are: ");
   Serial.println("\tdevice_name : " + String(device_name_buf));
+  Serial.println("\tservice_name : " + String(service_name_buf));
   Serial.println("\tmqtt_server : " + String(mqtt_server_buf));
   Serial.println("\tmqtt_port : " + String(mqtt_port_buf));
 
   // Update the port int
   mqtt_port = atoi(mqtt_port_buf);
+  device_name = device_name_buf;
+  service_name = service_name_buf;
 
   //save the custom parameters to FS
   if (shouldSaveConfig)
@@ -561,9 +581,10 @@ void setup()
     DynamicJsonBuffer jsonBuffer;
     JsonObject &json = jsonBuffer.createObject();
 
+    json["device_name"] = device_name_buf;
+    json["service_name"] = service_name_buf;
     json["mqtt_server"] = mqtt_server_buf;
     json["mqtt_port"] = mqtt_port_buf;
-    json["device_name"] = device_name_buf;
 
     File configFile = SPIFFS.open("/config.json", "w");
     if (!configFile)

@@ -36,10 +36,12 @@
 }
 */
 
+extern char mqtt_server_buf[40];
+
 // Constants
 const char *autoconf_ssid = "ESP8266 Smart AC"; //AP name for WiFi setup AP which your ESP will open when not able to connect to other WiFi
 const char *autoconf_pwd = "fuckno1234";		//AP password so noone else can connect to the ESP in case your router fails
-const char *mqtt_server = "192.168.1.51";		//MQTT Server IP, your home MQTT server eg Mosquitto on RPi, or some public MQTT
+const char *mqtt_server = mqtt_server_buf;		//MQTT Server IP, your home MQTT server eg Mosquitto on RPi, or some public MQTT
 int mqtt_port = 1883;							//MQTT Server PORT, default is 1883 but can be anything.
 const int btnPower = D5;
 const int btnUp = D6;
@@ -54,6 +56,7 @@ const int screenBrightnessUpdateInt = 5000; //Interval time for adjusting screen
 // MQTT Constants
 const char *mqtt_device_value_from_set_topic = "homebridge/from/set";
 const char *mqtt_device_value_to_set_topic = "homebridge/to/set";
+const char *mqtt_device_value_to_add_topic = "homebridge/to/add";
 String device_name = "Smart AC";
 String service_name = "smart_ac";
 String device_name_secondary = "Smart AC Basic";
